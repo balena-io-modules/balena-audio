@@ -1,5 +1,5 @@
 {
-  "name": "audio",
+  "name": "balena-audio",
   "version": "0.0.1",
   "description": "Library to interact with balena's audio block",
   "homepage": "https://github.com/balena-io-modules/audio#readme",
@@ -7,7 +7,8 @@
   "types": "build/index.d.ts",
   "keywords": [
     "balena",
-    "typescript"
+    "audio",
+    "block"
   ],
   "author": "",
   "license": "Apache-2.0",
@@ -19,7 +20,8 @@
     "url": "https://github.com/balena-io-modules/audio/issues"
   },
   "files": [
-    "build/"
+    "build/",
+    "README.md"
   ],
   "scripts": {
     "clean": "rimraf build",
@@ -45,5 +47,9 @@
     "rimraf": "^3.0.2",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "@tmigone/pulseaudio": "^0.1.12",
+    "ts-retry-promise": "^0.6.0"
   }
 }
