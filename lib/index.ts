@@ -1,87 +1,106 @@
-import PAClient, { AuthInfo, ClientInfo, ServerInfo, Sink } from '@tmigone/pulseaudio'
-import { retry } from 'ts-retry-promise'
+import PAClient, {
+	AuthInfo,
+	ClientInfo,
+	ServerInfo,
+	Sink,
+} from '@tmigone/pulseaudio';
+import { retry } from 'ts-retry-promise';
 
 export interface BalenaAudioInfo {
-  client: ClientInfo,
-  protocol: AuthInfo,
-  server: ServerInfo
+	client: ClientInfo;
+	protocol: AuthInfo;
+	server: ServerInfo;
 }
 
 export default class BalenaAudio extends PAClient {
+	public defaultSink: string | undefined;
+	public connected: boolean = false;
 
-  public defaultSink: string | undefined
-  public connected: boolean = false
+	constructor(
+		public address: string = 'tcp:audio:4317',
+		public subToEvents: boolean = true,
+		public name: string = 'BalenaAudio',
+	) {
+		super(address);
+	}
 
-  constructor(
-    public address: string = 'tcp:audio:4317',
-    public subToEvents: boolean = true,
-    public name: string = 'BalenaAudio'
-  ) {
-    super(address)
-  }
+	async listen(): Promise<BalenaAudioInfo> {
+		const protocol: AuthInfo = await this.connectWithRetry();
+		const client: ClientInfo = await this.setClientName(this.name);
+		const server: ServerInfo = await this.getServerInfo();
 
-  async listen(): Promise<BalenaAudioInfo> {
-    const protocol: AuthInfo = await this.connectWithRetry()
-    const client: ClientInfo = await this.setClientName(this.name)
-    const server: ServerInfo = await this.getServerInfo()
+		this.defaultSink = server.defaultSink;
 
-    this.defaultSink = server.defaultSink
+		if (this.subToEvents) {
+			await this.subscribe();
+			this.on('sink', async (data) => {
+				const sink: Sink = await this.getSink(data.index);
+				switch (sink.state) {
+					// running
+					case 0:
+						this.emit('play', sink);
+						break;
 
-    if (this.subToEvents) {
-      await this.subscribe()
-      this.on('sink', async data => {
-        let sink: Sink = await this.getSink(data.index)
-        switch (sink.state) {
-          // running
-          case 0:
-            this.emit('play', sink)
-            break
+					// idle
+					case 1:
+						this.emit('stop', sink);
+						break;
 
-          // idle
-          case 1:
-            this.emit('stop', sink)
-            break
+					// suspended
+					case 2:
+					default:
+						break;
+				}
+			});
+		}
 
-          // suspended
-          case 2:
-          default:
-            break;
-        }
-      })
-    }
+		return { client, protocol, server };
+	}
 
-    return { client, protocol, server }
-  }
+	async connectWithRetry(): Promise<AuthInfo> {
+		return await retry(
+			async () => {
+				const authInfo = await this.connect();
+				this.connected = true;
+				return authInfo;
+			},
+			{
+				retries: 'INFINITELY',
+				delay: 1000,
+				backoff: 'LINEAR',
+				timeout: 10 * 60 * 1000,
+				logger: (msg) => {
+					console.log(`Error connecting to audio block - ${msg}`);
+				},
+			},
+		);
+	}
 
-  async connectWithRetry(): Promise<AuthInfo> {
-    return await retry(async () => {
-      const authInfo = await this.connect()
-      this.connected = true
-      return authInfo
-    }, { retries: 'INFINITELY', delay: 1000, backoff: 'LINEAR', timeout: 10 * 60 * 1000, logger: (msg) => { console.log(`Error connecting to audio block - ${msg}`) } })
-  }
+	async getInfo() {
+		if (!this.connected) {
+			throw new Error('Not connected to audio block.');
+		}
+		return await this.getServerInfo();
+	}
 
-  async getInfo() {
-    if (!this.connected) {
-      throw new Error('Not connected to audio block.')
-    }
-    return await this.getServerInfo()
-  }
+	async setVolume(volume: number, sink?: string | number) {
+		if (!this.connected) {
+			throw new Error('Not connected to audio block.');
+		}
+		const sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0);
+		const level: number = Math.round(
+			(Math.max(0, Math.min(volume, 100)) / 100) * sinkObject.baseVolume,
+		);
+		return await this.setSinkVolume(sinkObject.index, level);
+	}
 
-  async setVolume(volume: number, sink?: string | number) {
-    if (!this.connected) {
-      throw new Error('Not connected to audio block.')
-    }
-    let sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0)
-    let level: number = Math.round(Math.max(0, Math.min(volume, 100)) / 100 * sinkObject.baseVolume)
-    return await this.setSinkVolume(sinkObject.index, level)
-  }
-
-  async getVolume(sink?: string | number) {
-    if (!this.connected) {
-      throw new Error('Not connected to audio block.')
-    }
-    let sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0)
-    return Math.round(sinkObject.channelVolumes.volumes[0] / sinkObject.baseVolume * 100)
-  }
+	async getVolume(sink?: string | number) {
+		if (!this.connected) {
+			throw new Error('Not connected to audio block.');
+		}
+		const sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0);
+		return Math.round(
+			(sinkObject.channelVolumes.volumes[0] / sinkObject.baseVolume) * 100,
+		);
+	}
 }
