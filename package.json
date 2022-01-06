@@ -1,6 +1,6 @@
 {
   "name": "balena-audio",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Library to interact with balena's audio block",
   "homepage": "https://github.com/balena-io-modules/audio#readme",
   "main": "build/index.js",
@@ -51,5 +51,8 @@
   "dependencies": {
     "@tmigone/pulseaudio": "^0.1.12",
     "ts-retry-promise": "^0.6.0"
+  },
+  "versionist": {
+    "publishedAt": "2022-01-06T13:16:07.434Z"
   }
 }
