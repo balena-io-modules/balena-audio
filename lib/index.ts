@@ -1,4 +1,4 @@
-import PAClient, {
+import PulseAudio, {
 	AuthInfo,
 	ClientInfo,
 	ServerInfo,
@@ -12,16 +12,16 @@ export interface BalenaAudioInfo {
 	server: ServerInfo;
 }
 
-export default class BalenaAudio extends PAClient {
+export default class BalenaAudio extends PulseAudio {
 	public defaultSink: string | undefined;
 	public connected: boolean = false;
 
 	constructor(
-		public address: string = 'tcp:audio:4317',
+		public tcpAddress: string = 'tcp:audio:4317',
 		public subToEvents: boolean = true,
 		public name: string = 'BalenaAudio',
 	) {
-		super(address);
+		super(tcpAddress);
 	}
 
 	async listen(): Promise<BalenaAudioInfo> {
@@ -76,17 +76,19 @@ export default class BalenaAudio extends PAClient {
 		);
 	}
 
-	async getInfo() {
+	checkConnected() {
 		if (!this.connected) {
 			throw new Error('Not connected to audio block.');
 		}
+	}
+
+	async getInfo() {
+		this.checkConnected();
 		return await this.getServerInfo();
 	}
 
 	async setVolume(volume: number, sink?: string | number) {
-		if (!this.connected) {
-			throw new Error('Not connected to audio block.');
-		}
+		this.checkConnected();
 		const sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0);
 		const level: number = Math.round(
 			(Math.max(0, Math.min(volume, 100)) / 100) * sinkObject.baseVolume,
@@ -95,12 +97,10 @@ export default class BalenaAudio extends PAClient {
 	}
 
 	async getVolume(sink?: string | number) {
-		if (!this.connected) {
-			throw new Error('Not connected to audio block.');
-		}
+		this.checkConnected();
 		const sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0);
 		return Math.round(
-			(sinkObject.channelVolumes.volumes[0] / sinkObject.baseVolume) * 100,
+			(sinkObject.channelVolume.volumes[0] / sinkObject.baseVolume) * 100,
 		);
 	}
 }
