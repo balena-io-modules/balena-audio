@@ -1,6 +1,6 @@
 {
   "name": "balena-audio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Library to interact with balena's audio block",
   "homepage": "https://github.com/balena-io-modules/audio#readme",
   "main": "build/index.js",
@@ -44,6 +44,6 @@
     "ts-retry-promise": "^0.6.0"
   },
   "versionist": {
-    "publishedAt": "2022-01-24T19:52:30.244Z"
+    "publishedAt": "2022-01-25T17:02:02.341Z"
   }
 }
