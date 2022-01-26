@@ -40,7 +40,7 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@tmigone/pulseaudio": "^1.0.2",
+    "@tmigone/pulseaudio": "^1.0.4",
     "ts-retry-promise": "^0.6.0"
   },
   "versionist": {
