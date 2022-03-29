@@ -91,7 +91,7 @@ export default class BalenaAudio extends PulseAudio {
 		this.checkConnected();
 		const sinkObject: Sink = await this.getSink(sink ?? this.defaultSink ?? 0);
 		const level: number = Math.round(
-			(Math.max(0, Math.min(volume, 100)) / 100) * sinkObject.baseVolume,
+			(Math.max(0, volume) / 100) * sinkObject.baseVolume,
 		);
 		return await this.setSinkVolume(sinkObject.index, level);
 	}
